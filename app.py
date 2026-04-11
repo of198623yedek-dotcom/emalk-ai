@@ -62,7 +62,7 @@ Bunu analiz et ve JSON döndür (başka bir şey yazma!):
 "query_type": "budget/luxury/general"}}"""
     
     try:
-        model = genai.GenerativeModel("gemini-pro")
+        model = genai.GenerativeModel("gemini-1.5-pro")
         response = model.generate_content(prompt, request_options={"timeout": 10})
         json_str = re.sub(r'```json\n?|\n?```', '', response.text.strip())
         return json.loads(json_str)
