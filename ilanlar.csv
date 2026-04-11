@@ -11,11 +11,46 @@ id,baslik,sehir,oda_sayisi,fiyat_tl,ozellik,yil
 10,Başakşehir'de Bahçeli Ev,Başakşehir,4+1,11000000,Müstakil bahçe çocuk oyun alanı yeşil,2024
 11,Gaziantep'te Geniş Villa,Gaziantep,5+1,4500000,Bahçeli müstakil eski kent manzarası,2023
 12,Gaziantep'te Merkezi Daire,Gaziantep,2+1,2800000,Yeni bina asansörlü merkezi konum,2024
-13,Bursa'da Modern Ev,Bursa,3+1,3200000,Yeşil alan yakın ailelere uygun temiz,2023
-14,Bursa'da Uygun Daire,Bursa,1+1,1500000,Öğrenci yurduna yakın ucuz fiyat,2024
-15,İzmir'de Deniz Manzaralı,İzmir,3+1,5800000,Alsancak'ta modern deniz manzarası,2024
-16,İzmir'de Uygun Daire,İzmir,2+1,3100000,Merkezi konum ulaşım kolay,2023
-17,Ankara'da Lüks Daire,Ankara,4+1,8900000,Çankaya'da ultra modern yeni bina,2024
-18,Ankara'da Güvenlikli Rezidans,Ankara,2+1,4200000,Gated community fitness havuz,2023
-19,Antalya'da Lüks Villa,Antalya,6+2,12000000,Deniz manzarası özel plaj havuz,2024
-20,Antalya'da Turist Daire,Antalya,1+1,2900000,Turist bölgesinde ticari iş imkanı,2023
+13,Gaziantep'te Uygun Daire,Gaziantep,1+1,1500000,Öğrenciye uygun ucuz fiyat,2023
+14,Bursa'da Modern Ev,Bursa,3+1,3200000,Yeşil alan yakın ailelere uygun temiz,2023
+15,Bursa'da Uygun Daire,Bursa,1+1,1500000,Öğrenci yurduna yakın ucuz fiyat,2024
+16,Bursa'da Bahçeli Villa,Bursa,4+1,4800000,Müstakil bahçe oturma alanı,2023
+17,İzmir'de Deniz Manzaralı,İzmir,3+1,5800000,Alsancak'ta modern deniz manzarası,2024
+18,İzmir'de Uygun Daire,İzmir,2+1,3100000,Merkezi konum ulaşım kolay,2023
+19,İzmir'de Lüks Ev,İzmir,4+1,9500000,Alsancak'ta yeni bina güvenlikli,2024
+20,Antalya'da Lüks Villa,Antalya,6+2,12000000,Deniz manzarası özel plaj havuz,2024
+21,Antalya'da Turist Daire,Antalya,1+1,2900000,Turist bölgesinde ticari iş imkanı,2023
+22,Antalya'da Kemer'de Lüks,Antalya,3+1,6500000,Turizm bölgesi plaj yakın,2024
+23,Ankara'da Lüks Daire,Ankara,4+1,8900000,Çankaya'da ultra modern yeni bina,2024
+24,Ankara'da Güvenlikli Rezidans,Ankara,2+1,4200000,Gated community fitness havuz,2023
+25,Ankara'da Uygun Ev,Ankara,3+1,3800000,Merkez ucuz fiyat ulaşım iyi,2024
+26,Adana'da Güvenli Daire,Adana,2+1,1800000,Modern bina asansörlü merkezi,2024
+27,Adana'da Uygun Villa,Adana,4+1,3200000,Bahçeli müstakil uygun fiyat,2023
+28,Mersin'de Deniz Daire,Mersin,2+1,2600000,Sahil yakın turizm alanı,2023
+29,Mersin'de Lüks Villa,Mersin,4+1,3500000,Kumsal yakın havuzlu bahçe,2024
+30,Konya'da Modern Ev,Konya,3+1,2100000,Yeni bina modern tasarım,2023
+31,Konya'da Uygun Daire,Konya,1+1,1200000,Merkezi konum ucuz fiyat,2024
+32,Kayseri'de Lüks Daire,Kayseri,3+1,2500000,Yeni rezidans güvenlikli,2024
+33,Kayseri'de Bahçeli Ev,Kayseri,4+1,2800000,Müstakil geniş bahçe,2023
+34,Sivas'ta Uygun Ev,Sivas,2+1,1100000,Merkezi konum ucuz fiyat,2024
+35,Ordu'da Deniz Evi,Ordu,3+1,2200000,Karadeniz yakın manzara,2023
+36,Rize'de Çay Bahçeli Ev,Rize,2+1,1800000,Çay bahçesi ile beraber,2024
+37,Trabzon'da Deniz Manzaralı,Trabzon,3+1,3100000,Uzungöl yakın doğa içinde,2023
+38,Giresun'da Uygun Daire,Giresun,1+1,1300000,Merkez ucuz fiyat,2024
+39,Samsun'da Modern Daire,Samsun,2+1,2400000,Yeni bina merkezi konum,2023
+40,Amasya'da Tarihi Ev,Amasya,3+1,1900000,Tarihi doku merkez konumu,2024
+41,Çorum'da Uygun Ev,Çorum,2+1,1400000,Merkezi konum ucuz fiyat,2023
+42,Tokat'ta Bahçeli Ev,Tokat,3+1,1700000,Geniş bahçe müstakil,2024
+43,Yozgat'ta Uygun Daire,Yozgat,1+1,900000,Merkez ucuz fiyat,2024
+44,Kırıkkale'de Daire,Kırıkkale,2+1,1500000,Modern asansörlü bina,2023
+45,Afyonkarahisar'da Ev,Afyonkarahisar,3+1,1800000,Merkezi konum iyi ulaşım,2024
+46,Eskişehir'de Lüks Daire,Eskişehir,2+1,2800000,Yeni rezidans havuz,2023
+47,Bilecik'te Bahçeli Ev,Bilecik,3+1,1600000,Geniş bahçe müstakil,2024
+48,Kütahya'da Uygun Daire,Kütahya,1+1,1100000,Merkez ucuz fiyat,2023
+49,Manisa'da Modern Ev,Manisa,2+1,1900000,Yeni bina merkezi,2024
+50,Denizli'de Lüks Daire,Denizli,3+1,3200000,Pamukkale yakın turizm,2024
+51,Muğla'da Deniz Evi,Muğla,2+1,4100000,Dalyan yakın deniz manzarası,2023
+52,Bodrum'da Lüks Villa,Bodrum,4+1,8500000,Deniz manzarası havuzlu,2024
+53,Marmaris'te Turist Daire,Marmaris,1+1,2800000,Turizm bölgesi gelir getirici,2023
+54,Fethiye'de Deniz Manzaralı,Fethiye,3+1,5200000,Ölüdeniz yakın doğa,2024
+55,Çanakkale'de Tarihi Ev,Çanakkale,2+1,1800000,Tarihi merkez sahil yakın,2023
