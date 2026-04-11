@@ -76,16 +76,26 @@ def extract_intent(user_query: str) -> dict:
 def search_ilanlar(intent_data: dict) -> list:
     results = df_ilanlar.copy()
     
+    # City filter (exact match first, then partial)
     if intent_data.get("city"):
-        results = results[results["sehir"].str.contains(intent_data["city"], case=False, na=False)]
+        city = intent_data["city"]
+        # Exact match
+        exact = results[results["sehir"].str.lower() == city.lower()]
+        if not exact.empty:
+            results = exact
+        # Partial match
+        else:
+            results = results[results["sehir"].str.lower().str.contains(city.lower(), na=False)]
     
+    # Room type filter
     if intent_data.get("room_type"):
-        results = results[results["oda_sayisi"].str.contains(intent_data["room_type"], case=False, na=False)]
+        results = results[results["oda_sayisi"] == intent_data["room_type"]]
     
+    # Price filter
     if intent_data.get("query_type") == "budget":
-        results = results[results["fiyat_tl"] < 10000000]
+        results = results[results["fiyat_tl"] < 5000000]
     elif intent_data.get("query_type") == "luxury":
-        results = results[results["fiyat_tl"] > 35000000]
+        results = results[results["fiyat_tl"] > 30000000]
     
     return results.to_dict("records")
 
