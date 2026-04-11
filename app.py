@@ -5,14 +5,16 @@ import json
 import re
 
 # --- CONFIGURATION ---
-GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY", "AIzaSyC...")  # secrets.toml'dan alır
-
-if "GEMINI_API_KEY" not in st.secrets:
-    st.error("❌ GEMINI_API_KEY secrets.toml'da tanımlanmamış!")
-    st.info("Lütfen .streamlit/secrets.toml dosyasına ekleyin:\nGEMINI_API_KEY = 'senin-api-keyin'")
+try:
+    api_key = st.secrets["GEMINI_API_KEY"]
+    if not api_key or api_key == "YOUR_GEMINI_API_KEY_HERE":
+        st.error("❌ GEMINI_API_KEY geçerli değil!")
+        st.stop()
+    genai.configure(api_key=api_key)
+except KeyError:
+    st.error("❌ GEMINI_API_KEY bulunamadı!")
+    st.info("Streamlit Cloud Settings → Secrets → ekleyin:\nGEMINI_API_KEY=your-key-here")
     st.stop()
-
-genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 
 # --- VERİ KAYNAGI (CSV) ---
 @st.cache_data
