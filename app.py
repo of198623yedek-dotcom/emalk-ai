@@ -1,41 +1,7 @@
 import streamlit as st
 import pandas as pd
-import google.generativeai as genai
-import json
+import random
 import re
-import os
-from dotenv import load_dotenv
-
-# Load .env
-load_dotenv()
-
-# --- CONFIGURATION ---
-def get_api_key():
-    # Streamlit Cloud Secrets'tan
-    if "GEMINI_API_KEY" in st.secrets:
-        return st.secrets["GEMINI_API_KEY"]
-    # .env dosyasından
-    api_key = os.getenv("GEMINI_API_KEY")
-    if api_key:
-        return api_key
-    return None
-
-api_key = get_api_key()
-
-if not api_key:
-    st.error("❌ GEMINI_API_KEY bulunamadı!")
-    st.info("""
-    Streamlit Cloud'da ayarlamak için:
-    1. App Settings → Secrets
-    2. Ekle: GEMINI_API_KEY=your-key
-    """)
-    st.stop()
-
-try:
-    genai.configure(api_key=api_key)
-except Exception as e:
-    st.error(f"❌ API Key Error: {str(e)}")
-    st.stop()
 
 # --- VERİ KAYNAGI ---
 @st.cache_data
@@ -49,26 +15,62 @@ def load_ilanlar():
 
 df_ilanlar = load_ilanlar()
 
-# --- NLU: INTENT RECOGNITION ---
+# --- SIMPLE NLU (Regex & Keyword Matching) ---
 def extract_intent(user_query: str) -> dict:
-    """Gemini ile user intent'ini anla"""
-    prompt = f"""Kullanıcı: "{user_query}"
-
-Bunu analiz et ve JSON döndür (başka bir şey yazma!):
-{{"intent": "greeting/farewell/search/thanks/other", 
-"city": "şehir adı veya null",
-"room_type": "2+1 gibi veya null", 
-"price_max": "sayı veya null",
-"query_type": "budget/luxury/general"}}"""
+    """Simple keyword-based intent extraction (NO API)"""
+    query_lower = user_query.lower()
     
-    try:
-        model = genai.GenerativeModel("gemini-1.5-pro")
-        response = model.generate_content(prompt, request_options={"timeout": 10})
-        json_str = re.sub(r'```json\n?|\n?```', '', response.text.strip())
-        return json.loads(json_str)
-    except Exception as e:
-        st.warning(f"⚠️ Analiz hatası: {str(e)}")
-        return {"intent": "other"}
+    # Greeting patterns
+    if any(word in query_lower for word in ["merhaba", "selam", "naber", "nasılsın", "hi", "hello"]):
+        return {"intent": "greeting"}
+    
+    # Farewell patterns
+    if any(word in query_lower for word in ["baybay", "görüşürüz", "hoşça", "bye"]):
+        return {"intent": "farewell"}
+    
+    # Thanks patterns
+    if any(word in query_lower for word in ["teşekkür", "sağol", "thanks"]):
+        return {"intent": "thanks"}
+    
+    # Search patterns
+    if any(word in query_lower for word in ["ilan", "ev", "daire", "villa", "bul", "ara", "göster", "var", "kaç"]):
+        city = None
+        room_type = None
+        query_type = "general"
+        
+        # City detection
+        cities = df_ilanlar["sehir"].unique().tolist()
+        for city_name in cities:
+            if city_name.lower() in query_lower:
+                city = city_name
+                break
+        
+        # Room type detection
+        if "1+1" in query_lower or "1 1" in query_lower:
+            room_type = "1+1"
+        elif "2+1" in query_lower or "2 1" in query_lower:
+            room_type = "2+1"
+        elif "3+1" in query_lower or "3 1" in query_lower:
+            room_type = "3+1"
+        elif "4+1" in query_lower or "4 1" in query_lower:
+            room_type = "4+1"
+        elif "5+2" in query_lower or "5 2" in query_lower:
+            room_type = "5+2"
+        
+        # Price query type
+        if "ucuz" in query_lower or "uygun" in query_lower:
+            query_type = "budget"
+        elif "pahalı" in query_lower or "lüks" in query_lower:
+            query_type = "luxury"
+        
+        return {
+            "intent": "search",
+            "city": city,
+            "room_type": room_type,
+            "query_type": query_type
+        }
+    
+    return {"intent": "other"}
 
 # --- CSV SEARCH ---
 def search_ilanlar(intent_data: dict) -> list:
@@ -87,55 +89,72 @@ def search_ilanlar(intent_data: dict) -> list:
     
     return results.to_dict("records")
 
-# --- RESPONSE ---
+# --- RESPONSE GENERATION ---
 def generate_response(intent: dict, search_results: list) -> str:
     intent_type = intent.get("intent", "other")
     
+    greetings = [
+        "🏠 Merhaba! Size ev bulmakta yardımcı olabilirim. Ne arıyorsunuz?",
+        "👋 Hoş geldiniz! Emlak danışmanınız burada. Ne arayabilirim?",
+        "🏡 Merhaba! Hayalinizdeki evi bulalım mı?",
+    ]
+    
     if intent_type == "greeting":
-        return "🏠 Merhaba! Size ev bulmakta yardımcı olabilirim. Ne arıyorsunuz?"
+        return random.choice(greetings)
+    
     elif intent_type == "farewell":
-        return "👋 Görüşmek üzere!"
+        return "👋 Görüşmek üzere! İyi günler dilerim."
+    
     elif intent_type == "thanks":
-        return "😊 Rica ederim!"
+        return "😊 Rica ederim! Başka bir şey sorabilirsem..."
+    
     elif intent_type == "search":
         if not search_results:
-            return "😔 Bulunamadı. Başka bir arama yapmak ister misiniz?"
+            return "😔 Maalesef bulunamadı. Başka bir arama yapmak ister misiniz?"
+        
         response = f"✅ **{len(search_results)} ilan buldum:**\n\n"
         for ilan in search_results[:5]:
-            response += f"🏠 **{ilan['baslik']}**\n💰 ₺{ilan['fiyat_tl']:,.0f}\n✨ {ilan['ozellik']}\n\n"
+            response += f"""🏠 **{ilan['baslik']}**
+💰 ₺{ilan['fiyat_tl']:,.0f}
+✨ {ilan['ozellik']}
+---
+"""
         return response
+    
     else:
-        return "🤔 Anlayamadım. Bir emlak ilanı arıyor musunuz?"
+        return "🤔 Anlayamadım. Bir emlak ilanı arıyor musunuz? Örneğin 'Beşiktaş'ta villa' yazabilirsiniz."
 
-# --- UI ---
+# --- STREAMLIT UI ---
 st.set_page_config(page_title="🏠 Akıllı Emlak Asistanı", page_icon="🏠")
 st.title("🏠 Akıllı Emlak Asistanı")
-st.markdown("**🤖 Gemini AI tarafından destekleniyor**")
+st.markdown("**Demo Modu - Mock Data (Ücretsiz & Hızlı)**")
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
+# Chat history
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-if prompt := st.chat_input("Sorununuzu yazın..."):
+# User input
+if prompt := st.chat_input("Sorununuzu yazın... (Örn: Kadıköy'de 2+1)"):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
     
     with st.chat_message("assistant"):
-        with st.spinner("🤔 Analiz ediliyor..."):
-            try:
-                intent = extract_intent(prompt)
-                results = search_ilanlar(intent) if intent.get("intent") == "search" else []
-                response = generate_response(intent, results)
-                st.markdown(response)
-                st.session_state.messages.append({"role": "assistant", "content": response})
-            except Exception as e:
-                error_msg = f"❌ Hata: {str(e)}"
-                st.error(error_msg)
-                st.session_state.messages.append({"role": "assistant", "content": error_msg})
+        with st.spinner("🔍 Aranıyor..."):
+            # Intent extraction
+            intent = extract_intent(prompt)
+            
+            # Search
+            results = search_ilanlar(intent) if intent.get("intent") == "search" else []
+            
+            # Response
+            response = generate_response(intent, results)
+            st.markdown(response)
+            st.session_state.messages.append({"role": "assistant", "content": response})
 
 st.divider()
 st.caption(f"📊 {len(df_ilanlar)} İlan | 🏙️ {df_ilanlar['sehir'].nunique()} Şehir")
