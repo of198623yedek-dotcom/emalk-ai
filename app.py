@@ -31,14 +31,21 @@ def extract_intent(user_query: str) -> dict:
     if any(word in query_lower for word in ["teşekkür", "sağol", "thanks"]):
         return {"intent": "thanks"}
     
-    # Search patterns
-    if any(word in query_lower for word in ["ilan", "ev", "daire", "villa", "bul", "ara", "göster", "var", "kaç"]):
+    # Search patterns - IMPROVED
+    search_keywords = ["ilan", "ev", "daire", "villa", "bul", "ara", "göster", "var", "kaç", "ne", "hangi", "arıyor"]
+    has_search_keyword = any(word in query_lower for word in search_keywords)
+    
+    # City detection
+    cities = df_ilanlar["sehir"].unique().tolist()
+    has_city = any(city_name.lower() in query_lower for city_name in cities)
+    
+    # If it has a city name OR search keywords, treat it as search
+    if has_city or has_search_keyword:
         city = None
         room_type = None
         query_type = "general"
         
         # City detection
-        cities = df_ilanlar["sehir"].unique().tolist()
         for city_name in cities:
             if city_name.lower() in query_lower:
                 city = city_name
