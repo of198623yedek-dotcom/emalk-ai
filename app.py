@@ -3,188 +3,139 @@ import pandas as pd
 import google.generativeai as genai
 import json
 import re
+import os
+from dotenv import load_dotenv
+
+# Load .env
+load_dotenv()
 
 # --- CONFIGURATION ---
-try:
-    api_key = st.secrets["GEMINI_API_KEY"]
-    if not api_key or api_key == "YOUR_GEMINI_API_KEY_HERE":
-        st.error("❌ GEMINI_API_KEY geçerli değil!")
-        st.stop()
-    genai.configure(api_key=api_key)
-except KeyError:
+def get_api_key():
+    # Streamlit Cloud Secrets'tan
+    if "GEMINI_API_KEY" in st.secrets:
+        return st.secrets["GEMINI_API_KEY"]
+    # .env dosyasından
+    api_key = os.getenv("GEMINI_API_KEY")
+    if api_key:
+        return api_key
+    return None
+
+api_key = get_api_key()
+
+if not api_key:
     st.error("❌ GEMINI_API_KEY bulunamadı!")
-    st.info("Streamlit Cloud Settings → Secrets → ekleyin:\nGEMINI_API_KEY=your-key-here")
+    st.info("""
+    Streamlit Cloud'da ayarlamak için:
+    1. App Settings → Secrets
+    2. Ekle: GEMINI_API_KEY=your-key
+    """)
     st.stop()
 
-# --- VERİ KAYNAGI (CSV) ---
+try:
+    genai.configure(api_key=api_key)
+except Exception as e:
+    st.error(f"❌ API Key Error: {str(e)}")
+    st.stop()
+
+# --- VERİ KAYNAGI ---
 @st.cache_data
 def load_ilanlar():
     try:
         df = pd.read_csv("ilanlar.csv")
         return df
-    except FileNotFoundError:
-        st.error("❌ ilanlar.csv dosyası bulunamadı!")
+    except:
+        st.error("❌ ilanlar.csv bulunamadı!")
         st.stop()
 
 df_ilanlar = load_ilanlar()
 
-# --- AŞAMA 1: NLU (Intent Recognition) ---
+# --- NLU: INTENT RECOGNITION ---
 def extract_intent(user_query: str) -> dict:
-    """
-    Kullanıcı sorgusundan amacını (intent) ve parametreleri çıkart
-    Gemini API'sini kullanarak NLU yap
-    """
-    prompt = f"""
-Sen bir emlak asistanı. Kullanıcının yazısını analiz et ve JSON formatında çıkart.
+    """Gemini ile user intent'ini anla"""
+    prompt = f"""Kullanıcı: "{user_query}"
 
-Kullanıcı Sorgusu: "{user_query}"
-
-Çıkartacak bilgiler:
-- intent: "greeting" (selamlaşma), "farewell" (vedalaşma), "search" (ilan arama), "thanks" (teşekkür), "other" (diğer)
-- city: Şehir adı (varsa, yoksa null)
-- room_type: Oda sayısı (varsa, yoksa null)
-- price_max: Maksimum fiyat TL (varsa, yoksa null)
-- query_type: "budget" (uygun), "luxury" (lüks), "general" (genel)
-
-Sadece JSON döndür, başka bir şey yazma!
-
-Örnek:
-{{"intent": "search", "city": "Kadıköy", "room_type": "2+1", "price_max": null, "query_type": "general"}}
-"""
-    
-    model = genai.GenerativeModel("gemini-pro")
-    response = model.generate_content(prompt)
+Bunu analiz et ve JSON döndür (başka bir şey yazma!):
+{{"intent": "greeting/farewell/search/thanks/other", 
+"city": "şehir adı veya null",
+"room_type": "2+1 gibi veya null", 
+"price_max": "sayı veya null",
+"query_type": "budget/luxury/general"}}"""
     
     try:
-        # JSON çıkartmayı dene
-        json_str = response.text.strip()
-        # Eğer ```json``` bloğu varsa temizle
-        json_str = re.sub(r'```json\n?|\n?```', '', json_str)
-        result = json.loads(json_str)
-        return result
-    except json.JSONDecodeError:
-        return {"intent": "other", "city": None, "room_type": None, "price_max": None, "query_type": "general"}
+        model = genai.GenerativeModel("gemini-pro")
+        response = model.generate_content(prompt, request_options={"timeout": 10})
+        json_str = re.sub(r'```json\n?|\n?```', '', response.text.strip())
+        return json.loads(json_str)
+    except Exception as e:
+        st.warning(f"⚠️ Analiz hatası: {str(e)}")
+        return {"intent": "other"}
 
-# --- AŞAMA 3: ROUTER LOGIC (CSV Filtreleme) ---
+# --- CSV SEARCH ---
 def search_ilanlar(intent_data: dict) -> list:
-    """
-    Intent'ten gelen verilere göre CSV'de arama yap
-    """
     results = df_ilanlar.copy()
     
-    # Şehir filtrelemesi
     if intent_data.get("city"):
         results = results[results["sehir"].str.contains(intent_data["city"], case=False, na=False)]
     
-    # Oda sayısı filtrelemesi
     if intent_data.get("room_type"):
         results = results[results["oda_sayisi"].str.contains(intent_data["room_type"], case=False, na=False)]
     
-    # Fiyat filtrelemesi (maksimum)
-    if intent_data.get("price_max"):
-        try:
-            max_price = int(intent_data["price_max"])
-            results = results[results["fiyat_tl"] <= max_price]
-        except:
-            pass
-    
-    # Bütçe sorgusu (uygun fiyat)
     if intent_data.get("query_type") == "budget":
         results = results[results["fiyat_tl"] < 10000000]
-    
-    # Lüks sorgusu
     elif intent_data.get("query_type") == "luxury":
         results = results[results["fiyat_tl"] > 35000000]
     
     return results.to_dict("records")
 
-# --- AŞAMA 2: RESPONSE GENERATION ---
+# --- RESPONSE ---
 def generate_response(intent: dict, search_results: list) -> str:
-    """
-    Intent ve arama sonuçlarına göre cevap oluştur
-    """
-    intent_type = intent.get("intent")
+    intent_type = intent.get("intent", "other")
     
-    # Selamlaşma
     if intent_type == "greeting":
-        return "🏠 Merhaba! Ben emlak asistanınız. Size bir ev bulmakta yardımcı olabilirim. Ne arıyorsunuz?"
-    
-    # Vedalaşma
+        return "🏠 Merhaba! Size ev bulmakta yardımcı olabilirim. Ne arıyorsunuz?"
     elif intent_type == "farewell":
-        return "👋 Görüşmek üzere! İyi günler dilerim."
-    
-    # Teşekkür
+        return "👋 Görüşmek üzere!"
     elif intent_type == "thanks":
-        return "😊 Rica ederim! Başka bir şey sorabilirsiniz."
-    
-    # Ilan Arama
+        return "😊 Rica ederim!"
     elif intent_type == "search":
         if not search_results:
-            return "😔 Maalesef sizin kriterlere uygun bir ilan bulamadım. Başka bir arama yapmak ister misiniz?"
-        
+            return "😔 Bulunamadı. Başka bir arama yapmak ister misiniz?"
         response = f"✅ **{len(search_results)} ilan buldum:**\n\n"
-        for ilan in search_results[:5]:  # Max 5 sonuç
-            response += f"""
-🏠 **{ilan['baslik']}**
-📍 Şehir: {ilan['sehir']}
-🚪 Oda Sayısı: {ilan['oda_sayisi']}
-💰 Fiyat: ₺{ilan['fiyat_tl']:,.0f}
-✨ Özellikler: {ilan['ozellik']}
----
-"""
+        for ilan in search_results[:5]:
+            response += f"🏠 **{ilan['baslik']}**\n💰 ₺{ilan['fiyat_tl']:,.0f}\n✨ {ilan['ozellik']}\n\n"
         return response
-    
-    # Diğer
     else:
-        return "🤔 Anlayamadım. Bir emlak ilanı arıyor musunuz? Örneğin: 'Kadıköy'de uygun daire bulabilir misin?'"
+        return "🤔 Anlayamadım. Bir emlak ilanı arıyor musunuz?"
 
-# --- STREAMLIT UI ---
-st.set_page_config(page_title="🏠 Akıllı Emlak Asistanı", page_icon="🏠", layout="centered")
-st.title("🏠 Akıllı Emlak Asistanı (AI Powered)")
-st.markdown("**🤖 Gemini AI tarafından desteklenen akıllı arama sistemi**")
+# --- UI ---
+st.set_page_config(page_title="🏠 Akıllı Emlak Asistanı", page_icon="🏠")
+st.title("🏠 Akıllı Emlak Asistanı")
+st.markdown("**🤖 Gemini AI tarafından destekleniyor**")
 
-st.info("✨ Bu sistem yapay zekayı kullanarak sorularınızı anlıyor ve en uygun ilanları buluyor!")
-
-# Session state
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Mesaj geçmişi
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# Kullanıcı girişi
-if prompt := st.chat_input("Bir soru yazın... (Örn: Kadıköy'de 2+1 uygun daire var mı?)"):
-    # Kullanıcı mesajı
+if prompt := st.chat_input("Sorununuzu yazın..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
     
-    # Bot yanıtı (Gemini AI tarafından)
     with st.chat_message("assistant"):
         with st.spinner("🤔 Analiz ediliyor..."):
-            # 1. Intent Recognition (NLU)
-            intent = extract_intent(prompt)
-            
-            # 2. Search (CSV Filtreleme)
-            if intent.get("intent") == "search":
-                results = search_ilanlar(intent)
-            else:
-                results = []
-            
-            # 3. Response Generation
-            response = generate_response(intent, results)
-            st.markdown(response)
-    
-    st.session_state.messages.append({"role": "assistant", "content": response})
+            try:
+                intent = extract_intent(prompt)
+                results = search_ilanlar(intent) if intent.get("intent") == "search" else []
+                response = generate_response(intent, results)
+                st.markdown(response)
+                st.session_state.messages.append({"role": "assistant", "content": response})
+            except Exception as e:
+                error_msg = f"❌ Hata: {str(e)}"
+                st.error(error_msg)
+                st.session_state.messages.append({"role": "assistant", "content": error_msg})
 
-# Alt bilgiler
 st.divider()
-col1, col2 = st.columns(2)
-with col1:
-    st.caption("💡 **Örnek Sorular:**")
-    st.caption("• Merhaba\n• Kadıköy'de 2+1\n• Uygun fiyatlı ev\n• Lüks villa\n• Beşiktaş'ta ne var?")
-with col2:
-    st.caption("📊 **Sistem Hakkında:**")
-    st.caption(f"✨ AI: Gemini Pro\n📈 Veri: {len(df_ilanlar)} İlan\n🏙️ Şehirler: {df_ilanlar['sehir'].nunique()}")
+st.caption(f"📊 {len(df_ilanlar)} İlan | 🏙️ {df_ilanlar['sehir'].nunique()} Şehir")
