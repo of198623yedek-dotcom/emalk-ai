@@ -4,7 +4,6 @@ import random
 import re
 
 # --- VERİ KAYNAGI ---
-@st.cache_data
 def load_ilanlar():
     try:
         df = pd.read_csv("ilanlar.csv")
@@ -132,7 +131,7 @@ def generate_response(intent: dict, search_results: list) -> str:
         return response
     
     else:
-        return "🤔 Anlayamadım. Bir emlak ilanı arıyor musunuz? Örneğin 'Beşiktaş'ta villa' yazabilirsiniz."
+        return "🤔 Anlayamadım. Bir emlak ilanı arıyor musunuz? Örneğin 'Gaziantep', 'Bursa 2+1' yazabilirsiniz."
 
 # --- STREAMLIT UI ---
 st.set_page_config(page_title="🏠 Akıllı Emlak Asistanı", page_icon="🏠")
