@@ -27,7 +27,7 @@ if not GOOGLE_API_KEY:
 
 try:
     genai.configure(api_key=GOOGLE_API_KEY)
-    model = genai.GenerativeModel('gemini-1.5-pro')  # Flash yerine Pro kullan
+    model = genai.GenerativeModel('gemini-pro')
 except Exception as e:
     st.error(f"❌ API Error: {str(e)}")
     st.stop()
