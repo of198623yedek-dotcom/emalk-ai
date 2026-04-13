@@ -1,2 +1,2 @@
 # Merhaba Dünya - Python Örneği
-print("Merhaba dünya")
+print("Maraba rafık!")
