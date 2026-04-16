@@ -1,7 +1,29 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 import json
 import random
+
+# Voiceflow web widget (Production). Normal HTML sitelerinde </body> öncesine yapıştırılır;
+# Streamlit'te components.html ile yüklenir (balon bazen iframe içinde kalabilir).
+VOICEFLOW_WIDGET_SNIPPET = """
+<script type="text/javascript">
+  (function(d, t) {
+      var v = d.createElement(t), s = d.getElementsByTagName(t)[0];
+      v.onload = function() {
+        window.voiceflow.chat.load({
+          verify: { projectID: '69e1057a5ccdc868b3923337' },
+          url: 'https://general-runtime.voiceflow.com',
+          versionID: 'production',
+          voice: {
+            url: "https://runtime-api.voiceflow.com"
+          }
+        });
+      }
+      v.src = "https://cdn.voiceflow.com/widget-next/bundle.mjs"; v.type = "text/javascript"; s.parentNode.insertBefore(v, s);
+  })(document, 'script');
+</script>
+"""
 
 # --- VERİ YÜKLEME ---
 def load_data():
@@ -137,3 +159,12 @@ if prompt := st.chat_input("Örn: Beşiktaş'ta 2+1, maksimum 5 milyon TL"):
 
 st.divider()
 st.caption(f"📊 {len(df_ilanlar)} İlan | 🏙️ {df_ilanlar['sehir'].nunique()} Şehir")
+
+with st.sidebar:
+    st.caption(
+        "Voiceflow danışmanı: sağ altta sohbet balonu görünmüyorsa, "
+        "aynı script’i kendi HTML sitenizde `</body>` öncesine ekleyin "
+        "(Streamlit sayfası iframe içinde çalıştığı için widget bazen kısıtlı kalabilir)."
+    )
+
+components.html(VOICEFLOW_WIDGET_SNIPPET, height=0)
