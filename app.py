@@ -1,29 +1,15 @@
 import streamlit as st
 import streamlit.components.v1 as components
 import pandas as pd
-import json
-import random
 
-# Voiceflow web widget (Production). Normal HTML sitelerinde </body> öncesine yapıştırılır;
-# Streamlit'te components.html ile yüklenir (balon bazen iframe içinde kalabilir).
-VOICEFLOW_WIDGET_SNIPPET = """
-<script type="text/javascript">
-  (function(d, t) {
-      var v = d.createElement(t), s = d.getElementsByTagName(t)[0];
-      v.onload = function() {
-        window.voiceflow.chat.load({
-          verify: { projectID: '69e1057a5ccdc868b3923337' },
-          url: 'https://general-runtime.voiceflow.com',
-          versionID: 'production',
-          voice: {
-            url: "https://runtime-api.voiceflow.com"
-          }
-        });
-      }
-      v.src = "https://cdn.voiceflow.com/widget-next/bundle.mjs"; v.type = "text/javascript"; s.parentNode.insertBefore(v, s);
-  })(document, 'script');
-</script>
-"""
+
+def voiceflow_share_url() -> str:
+    """Voiceflow > Share > Copy link adresi. Cloud'da Secrets ile override edilebilir."""
+    try:
+        return str(st.secrets["VOICEFLOW_SHARE_URL"]).strip()
+    except Exception:
+        # Voiceflow arayüzünden kopyaladığın tam share linki buraya yaz (veya Secrets kullan).
+        return "https://creator.voiceflow.com/share/69e1057a5ccdc868b3923337"
 
 # --- VERİ YÜKLEME ---
 def load_data():
@@ -115,6 +101,15 @@ st.title("🏠 Akıllı Emlak Asistanı")
 st.markdown("**Demo Modu - No API Required** ✨")
 st.write("İstediğiniz evi bana anlatın, ben sizin için bulayım!")
 
+vf_url = voiceflow_share_url()
+with st.expander("🏠 Gelişmiş AI danışman (Voiceflow) — ilan arama + danışmanlık", expanded=False):
+    st.caption(
+        "Streamlit Cloud, sayfayı iframe içinde çalıştırdığı için sağ alttaki Voiceflow **script balonu** burada görünmez. "
+        "Aşağıdaki panel tam sayfa sohbeti gösterir; boş kalırsa Voiceflow linkini yeni sekmede aç."
+    )
+    components.iframe(vf_url, height=720, scrolling=True)
+    st.markdown(f"[Voiceflow’u yeni sekmede aç]({vf_url})")
+
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -162,9 +157,7 @@ st.caption(f"📊 {len(df_ilanlar)} İlan | 🏙️ {df_ilanlar['sehir'].nunique
 
 with st.sidebar:
     st.caption(
-        "Voiceflow danışmanı: sağ altta sohbet balonu görünmüyorsa, "
-        "aynı script’i kendi HTML sitenizde `</body>` öncesine ekleyin "
-        "(Streamlit sayfası iframe içinde çalıştığı için widget bazen kısıtlı kalabilir)."
+        "Gelişmiş danışman: üstteki Voiceflow paneli. "
+        "Kendi HTML sitende sağ altta balon istersen Voiceflow Widget kodunu `</body>` öncesine ekle."
     )
-
-components.html(VOICEFLOW_WIDGET_SNIPPET, height=0)
+    st.markdown(f"[Voiceflow sohbet (direkt link)]({vf_url})")
